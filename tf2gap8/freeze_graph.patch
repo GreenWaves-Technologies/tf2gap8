@@ -1,0 +1,11 @@
+--- freeze_graph	2017-12-15 11:44:09.321196156 +0100
++++ freeze_graph_B	2017-12-15 11:45:09.653128001 +0100
+@@ -151,7 +151,7 @@
+     raise AssertionError('Could not find python binary: ' + PYTHON_BINARY)
+   args = [python_program, main_filename] + args
+ 
+-  os.environ.update(new_env)
++  #os.environ.update(new_env)
+ 
+   try:
+     sys.stdout.flush()
