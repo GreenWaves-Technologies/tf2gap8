@@ -87,6 +87,9 @@ export TF_NEED_MPI=0
 
 .PHONY: prepare tensorflow_bins check_bazel bazel freezegraph transformgraph tf2gap install install-tools install-lib
 
+# Installation of all the necessaries tools and liberaries.
+install: all install-tools install-lib
+
 all: prepare freezegraph transformgraph tf2gap
 
 prepare: $(BUILD_TMP) bazel $(TENSORFLOW_BUILD) $(BUILD_TMP)/.tf_r12checkedout $(BUILD_TMP)/.python_virtenv $(BUILD_TMP)/.tf_configured \
@@ -169,8 +172,6 @@ $(BUILD_TMP)/.prepare_bazel:
 
 $(BUILD_TMP)/install_bazel:
 	wget -O $@ $(BAZEL_INSTALLER)
-
-install: all install-tools install-lib
 
 install-tools: $(INSTALL_BIN)/freeze_graph $(INSTALL_BIN)/transform_graph $(INSTALL_BIN)/tf2gap8
 
