@@ -92,7 +92,10 @@ int main()
     }
 
     cluster_perf = rt_alloc(RT_ALLOC_L2_CL_DATA, sizeof(rt_perf_t));
-    if (cluster_perf == NULL) goto err;
+    if (cluster_perf == NULL) {
+        printf("cluster perf allocation failed")
+        return -1;
+    }
 
     rt_cluster_call(NULL, CID, cluster_main, NULL, stacks, STACK_SIZE, STACK_SIZE, rt_nb_pe(), 0);
 
