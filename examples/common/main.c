@@ -93,7 +93,7 @@ int main()
 
     cluster_perf = rt_alloc(RT_ALLOC_L2_CL_DATA, sizeof(rt_perf_t));
     if (cluster_perf == NULL) {
-        printf("cluster perf allocation failed")
+        printf("cluster perf allocation failed");
         return -1;
     }
 
