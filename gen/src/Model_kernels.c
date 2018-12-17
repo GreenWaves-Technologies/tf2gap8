@@ -33,14 +33,12 @@
 // Import AutoTiler lib
 #include "AutoTilerLib.h"
 // Import CNN generators
-#include "CNN_Generator.h"
+#include "CNN_Generators.h"
 #include "param_layer_struct.h"
 #include "param_layers.h"
 
 void CnnModel(unsigned int L1Memory)
-
 {
-
 
   int i;
   char filename[128];
@@ -48,29 +46,21 @@ void CnnModel(unsigned int L1Memory)
 
   SetInlineMode(ALWAYS_INLINE);
   SetSymbolDynamics();
-  SetUsedFilesNames("KernelLibStdTypes.h",1 , "CNN_BasicKernels.h");
+  SetUsedFilesNames(0,1 , "CNN_BasicKernels.h");
   SetGeneratedFilesNames("CnnKernelsInit.c", "CnnKernelsInit.h", "CnnKernels.c", "CnnKernels.h");
-
   SetL1MemorySize(L1Memory);
 
-  CNN_LoadSoftwareKernelLibrary();
+  LoadCNNLibrary();
   CNN_LoadHWCEKernelLibrary();
-  // cifar config
-
 
   char pool_param=0;
-  for (i=0;i<NB_CONV;i++) {
+  for (i=0;i<NB_CONV;i++)
+  {
     strcpy(filename,"ConvLayer");
     sprintf(numker,"%d",i+1);
     strcat(filename,numker);
     printf("%s\n",filename);
-    // set pool_param parameter : AVG pool is not supported in theis release
-    if (convLayers[i].max_pool && convLayers[i].relu) pool_param=1;
-    // infer max pooling
-    if (convLayers[i].max_pool && (!convLayers[i].relu)) pool_param=3;
-    if ((!convLayers[i].max_pool)) printf(" only conv layer with pooling is supported in this version\n");
-   CNN_TiledConvNxNReLUPool2x2_SW_fp(filename, convLayers[i].kernel_width, convLayers[i].nb_if, convLayers[i].nb_of, convLayers[i].win, convLayers[i].hin, pool_param);
-
+    CNN_LargeConvolutionPoolReLU_Hor(filename, 2, 2, 2, 2, 0, 0, 0, 0, convLayers[i].nb_if, convLayers[i].nb_of, convLayers[i].win, convLayers[i].hin, convLayers[i].kernel_width, 1, 0, 0, 2, 2, 0 ,convLayers[i].relu ,convLayers[i].max_pool);
   }
 
   for (i=0;i<NB_DENSE;i++) {
@@ -78,18 +68,18 @@ void CnnModel(unsigned int L1Memory)
     sprintf(numker,"%d",i+1);
     strcat(filename,numker);
     printf("%s\n",filename);
-    CNN_TiledLinearLayer(filename, denseLayers[i].nb_if, denseLayers[i].win, denseLayers[i].hin, denseLayers[i].nb_of, 1, denseLayers[i].relu, 0 );
+    // output is on "int" format to allow different norm value for bias and output. instanciates the KerLinearRelu_fp_fp_fpd
+    CNN_LinearLayerReLU(filename, 2, 2, 2, 4, 0, 0, 0, 0, denseLayers[i].win*denseLayers[i].hin*denseLayers[i].nb_if, denseLayers[i].nb_of, 0);
   }
-
-
 
 }
 
 int main(int argc, char **argv)
-
 {
-  if (TilerParseOptions(argc, argv)) {
-		printf("Failed to initialize or incorrect output directory.\n"); return 0;
+    if (TilerParseOptions(argc, argv))
+    {
+		printf("Failed to initialize or incorrect output directory.\n");
+        return -1;
 	}
 	CnnModel(51200);
 	GenerateTilingCode();

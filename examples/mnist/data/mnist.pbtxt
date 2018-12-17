@@ -3666,6 +3666,14 @@ node {
   name: "gradients/Mean_grad/Const"
   op: "Const"
   attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/Mean_grad/Shape_1"
+      }
+    }
+  }
+  attr {
     key: "_output_shapes"
     value {
       list {
@@ -3716,6 +3724,14 @@ node {
     }
   }
   attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/Mean_grad/Shape_1"
+      }
+    }
+  }
+  attr {
     key: "_output_shapes"
     value {
       list {
@@ -3734,6 +3750,14 @@ node {
 node {
   name: "gradients/Mean_grad/Const_1"
   op: "Const"
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/Mean_grad/Shape_1"
+      }
+    }
+  }
   attr {
     key: "_output_shapes"
     value {
@@ -3785,6 +3809,14 @@ node {
     }
   }
   attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/Mean_grad/Shape_1"
+      }
+    }
+  }
+  attr {
     key: "_output_shapes"
     value {
       list {
@@ -3803,6 +3835,14 @@ node {
 node {
   name: "gradients/Mean_grad/Maximum/y"
   op: "Const"
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/Mean_grad/Shape_1"
+      }
+    }
+  }
   attr {
     key: "_output_shapes"
     value {
@@ -3842,6 +3882,14 @@ node {
     }
   }
   attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/Mean_grad/Shape_1"
+      }
+    }
+  }
+  attr {
     key: "_output_shapes"
     value {
       list {
@@ -3860,6 +3908,14 @@ node {
     key: "T"
     value {
       type: DT_INT32
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/Mean_grad/Shape_1"
+      }
     }
   }
   attr {
@@ -5091,9 +5147,16 @@ node {
   }
 }
 node {
-  name: "gradients/Conv2D_1_grad/Shape"
-  op: "Shape"
+  name: "gradients/Conv2D_1_grad/ShapeN"
+  op: "ShapeN"
   input: "MaxPool"
+  input: "Variable_2/read"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
   attr {
     key: "T"
     value {
@@ -5104,6 +5167,11 @@ node {
     key: "_output_shapes"
     value {
       list {
+        shape {
+          dim {
+            size: 4
+          }
+        }
         shape {
           dim {
             size: 4
@@ -5122,7 +5190,7 @@ node {
 node {
   name: "gradients/Conv2D_1_grad/Conv2DBackpropInput"
   op: "Conv2DBackpropInput"
-  input: "gradients/Conv2D_1_grad/Shape"
+  input: "gradients/Conv2D_1_grad/ShapeN"
   input: "Variable_2/read"
   input: "gradients/add_1_grad/tuple/control_dependency"
   attr {
@@ -5183,46 +5251,10 @@ node {
   }
 }
 node {
-  name: "gradients/Conv2D_1_grad/Shape_1"
-  op: "Const"
-  attr {
-    key: "_output_shapes"
-    value {
-      list {
-        shape {
-          dim {
-            size: 4
-          }
-        }
-      }
-    }
-  }
-  attr {
-    key: "dtype"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_INT32
-        tensor_shape {
-          dim {
-            size: 4
-          }
-        }
-        tensor_content: "\005\000\000\000\005\000\000\000 \000\000\000@\000\000\000"
-      }
-    }
-  }
-}
-node {
   name: "gradients/Conv2D_1_grad/Conv2DBackpropFilter"
   op: "Conv2DBackpropFilter"
   input: "MaxPool"
-  input: "gradients/Conv2D_1_grad/Shape_1"
+  input: "gradients/Conv2D_1_grad/ShapeN:1"
   input: "gradients/add_1_grad/tuple/control_dependency"
   attr {
     key: "T"
@@ -5236,16 +5268,16 @@ node {
       list {
         shape {
           dim {
-            size: 5
+            size: -1
           }
           dim {
-            size: 5
+            size: -1
           }
           dim {
-            size: 32
+            size: -1
           }
           dim {
-            size: 64
+            size: -1
           }
         }
       }
@@ -5781,9 +5813,16 @@ node {
   }
 }
 node {
-  name: "gradients/Conv2D_grad/Shape"
-  op: "Shape"
+  name: "gradients/Conv2D_grad/ShapeN"
+  op: "ShapeN"
   input: "x_input"
+  input: "Variable/read"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
   attr {
     key: "T"
     value {
@@ -5794,6 +5833,11 @@ node {
     key: "_output_shapes"
     value {
       list {
+        shape {
+          dim {
+            size: 4
+          }
+        }
         shape {
           dim {
             size: 4
@@ -5812,7 +5856,7 @@ node {
 node {
   name: "gradients/Conv2D_grad/Conv2DBackpropInput"
   op: "Conv2DBackpropInput"
-  input: "gradients/Conv2D_grad/Shape"
+  input: "gradients/Conv2D_grad/ShapeN"
   input: "Variable/read"
   input: "gradients/add_grad/tuple/control_dependency"
   attr {
@@ -5873,46 +5917,10 @@ node {
   }
 }
 node {
-  name: "gradients/Conv2D_grad/Shape_1"
-  op: "Const"
-  attr {
-    key: "_output_shapes"
-    value {
-      list {
-        shape {
-          dim {
-            size: 4
-          }
-        }
-      }
-    }
-  }
-  attr {
-    key: "dtype"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_INT32
-        tensor_shape {
-          dim {
-            size: 4
-          }
-        }
-        tensor_content: "\005\000\000\000\005\000\000\000\001\000\000\000 \000\000\000"
-      }
-    }
-  }
-}
-node {
   name: "gradients/Conv2D_grad/Conv2DBackpropFilter"
   op: "Conv2DBackpropFilter"
   input: "x_input"
-  input: "gradients/Conv2D_grad/Shape_1"
+  input: "gradients/Conv2D_grad/ShapeN:1"
   input: "gradients/add_grad/tuple/control_dependency"
   attr {
     key: "T"
@@ -5926,16 +5934,16 @@ node {
       list {
         shape {
           dim {
-            size: 5
+            size: -1
           }
           dim {
-            size: 5
+            size: -1
           }
           dim {
-            size: 1
+            size: -1
           }
           dim {
-            size: 32
+            size: -1
           }
         }
       }
@@ -9389,7 +9397,7 @@ node {
         dtype: DT_STRING
         tensor_shape {
         }
-        string_val: "_temp_07028c0332474a5897f6d61fc1edf081/part"
+        string_val: "_temp_782d7bdc50f94f1c82b682daf756bacd/part"
       }
     }
   }

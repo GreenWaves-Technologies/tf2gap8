@@ -588,6 +588,43 @@ Status get_attribute(const NodeDef& node, bool *relu) {
   return status;
 };
 
+void init_nphFile(ofstream& nphFile){
+
+	nphFile << "#ifndef __CNNKERNEL_H__" << "\n";
+	nphFile << "#define __CNNKERNEL_H__" << "\n";
+
+	nphFile << "#include \"AutoTilerLibTypes.h\"" << "\n";
+	nphFile << "#include \"CnnKernelsInit.h\"" << "\n";
+	nphFile << "#include \"CNN_BasicKernels.h\"" << "\n";
+	nphFile << "#define _L1_Memory_SIZE 38176" << "\n";
+	nphFile << "#define _L2_Memory_SIZE 0" << "\n";
+	nphFile << "extern char *L1_Memory; /* Size given for generation: 51200 bytes, used: 38176 bytes */" << "\n";
+	nphFile << "extern char *L2_Memory; /* Size used for generation: 0 bytes */" << "\n" << "\n"<< "\n";
+	}
+
+void append_nphFile(ofstream& nphFile, int layerNb, bool convLayer=true) {
+
+	if (convLayer) {
+		nphFile << "extern void ConvLayer" << layerNb << "(" << "\n";
+		nphFile << "short int * __restrict__ In," << "\n";
+		nphFile << "short int * __restrict__ Filter," << "\n";
+		nphFile << "short int * __restrict__ Bias," << "\n";
+		nphFile << "short int * __restrict__ Out," << "\n";
+		nphFile << "unsigned int Norm," << "\n";
+		nphFile << "Kernel_Exec_T *Ker);" << "\n"<< "\n";
+
+	} else {
+		nphFile << "extern void Dense" << layerNb << "(" << "\n";
+		nphFile << "short int * __restrict__ In," << "\n";
+		nphFile << "short int * __restrict__ Filter," << "\n";
+		nphFile << "short int * __restrict__ Bias," << "\n";
+		nphFile << "short int * __restrict__ Out," << "\n";
+		nphFile << "unsigned int Norm, " << "\n";
+		nphFile << "unsigned int NormBias, " << "\n";
+		nphFile << "Kernel_Exec_T *Ker); " << "\n"<< "\n";
+	}
+}
+
 void initH2C2Files(ofstream& HFile, ofstream& CFile){
   // Writes first content of the main .h and .cc files
   // of the application GAP8 representation
@@ -595,6 +632,7 @@ void initH2C2Files(ofstream& HFile, ofstream& CFile){
   HFile << "#include \"rt/rt_api.h\"" << "\n";
   HFile << "#ifndef WEIGHTS_BIAS_H" << "\n";
   HFile << "#define WEIGHTS_BIAS_H" << "\n";
+
 };
 
  
@@ -606,7 +644,9 @@ void createLayersVector(std::vector<Layer*>& layers,
                         GraphDef graph,
                         std::string& l2_data,
                         layer_t *l_layer,
-			bool ftp
+						bool ftp,
+						ofstream& H2File,
+						ofstream& C2File
                        ) {
   Status status;
 
@@ -632,14 +672,6 @@ void createLayersVector(std::vector<Layer*>& layers,
   Color::Modifier orange(Color::FG_ORANGE);
   Color::Modifier green(Color::FG_GREEN);
   
-  // define .h and .c files for the generation weights & bias of GAP8 code
-  ofstream H2File;
-  ofstream C2File;
-  H2File.open(Gap8CodeDirName + "/weights_bias.h");
-  C2File.open(Gap8CodeDirName + "/weights_bias.c");
-
-  // Initialize H2File and C2File
-  initH2C2Files(H2File,C2File);
 
   // Looping through the nodes of the application graph
   // !! We only treat linear graphs
@@ -821,7 +853,7 @@ void createLayersVector(std::vector<Layer*>& layers,
         l_layer[layer_num].out_height = lastOutputHeight;
         l_layer[layer_num].n_out_feat = lastOutputNumber;
         reorder_layers(l_layer, layer_num);
-         
+      clog << green << "End of Treating a node of type PlaceHolder" << def << "\n";
       }
       else if (!op.compare("Reshape")){
         clog << "\n";
@@ -831,9 +863,6 @@ void createLayersVector(std::vector<Layer*>& layers,
       }
   }//end for    
 
-  H2File << "#endif\n";
-  H2File.close();
-  C2File.close();
 
   // Shouldn't we return the status? 
 
@@ -1021,7 +1050,10 @@ void createForLoopandHeader(std::vector<Layer*>& layers,
                             std::string& str,
                             string Gap8CodeDirName,
                             int &tot_size_coeff,
-                            int &tot_size_bias){
+                            int &tot_size_bias,
+                            ofstream& nphFile,
+                            ofstream& H2File,
+                            ofstream& C2File){
   str = "\n";
   int function_num = 0;
   bool first = true;
@@ -1043,6 +1075,10 @@ void createForLoopandHeader(std::vector<Layer*>& layers,
   int nb_dense=0; // nb of dense layers
 
   clog << "\n";
+
+  // initialize network_process.h file
+  init_nphFile(nphFile);
+
   clog << green << "****** Generating GAP8 Code ******" << def << "\n";
   for (std::vector<Layer*>::iterator it = layers.begin() ; it != layers.end(); ++it){
       std::string cls = (*it)->type;
@@ -1078,32 +1114,48 @@ void createForLoopandHeader(std::vector<Layer*>& layers,
               alternate = true;
             }
           }
-            str = str + inBuf + ",L2_W_"+std::to_string((*it)->layer_number);
-            str = str + "," + outBuf + ","+
-            std::to_string(QF)+",L2_B_";
-            str = str +std::to_string((*it)->layer_number)+",AllKernels + " + std::to_string(idx) + "); \n";
+            // First Append network_process.h file with convLayer definition function
+          	// There is one new function def per conv Layer as it is going to be inlined
+          	append_nphFile(nphFile, nb_conv,true);
+            str = str + inBuf + ",L2_W_"+ std::to_string((*it)->layer_number);
+            str=str + ",L2_B_" + std::to_string((*it)->layer_number); // Bias
+            str = str + "," + outBuf + ",";  // out 
+            str = str + std::to_string(QF);  // Norm
+            str=str + ",AllKernels + " + std::to_string(idx) + "); \n"; // kernel
             
           function_num += 1;
-          //str = "   " + str + "\n }\n";
+          
       }
 
       else if(!cls.compare("dense")){
           nb_dense++;
           DenseLayer* test = (DenseLayer*) *it;
           tmp= "Dense" + std::to_string(nb_dense);
-          kernel = tmp;
           tmp_dense=tmp_dense + headerDenseLayer(test, tmp, kernel,tot_size_coeff,tot_size_bias);
           tmp = tmp +  "(";
+          // First Append network_process.h file with denseLayer definition function
+          // There is one new function def per conv Layer as it is going to be inlined
+          append_nphFile(nphFile, nb_dense,false);
           if(alternate){
-              tmp = tmp + "l2_big0,L2_W_"+std::to_string((*it)->layer_number)+",16,L2_B_"+
-              std::to_string((*it)->layer_number)+",13,l2_big1,"+
-              std::to_string((test)->n_out_feat)+",AllKernels + " + std::to_string(idx) + "); \n";
-              alternate = false;
+	        tmp = tmp + "l2_big0,L2_W_"+std::to_string((*it)->layer_number); // in + filter
+	          
+	        tmp=tmp+",L2_B_" + std::to_string((*it)->layer_number); // Bias
+	        tmp=tmp+ ",l2_big1"; // out
+	        //tmp=tmp + std::to_string((test)->n_out_feat);
+	        tmp=tmp + ",16"; // Norm 
+	        tmp=tmp+ ",13"; // Norm Bias
+	         
+	        tmp=tmp +",AllKernels + " + std::to_string(idx) + "); \n"; // Kernel
+	        alternate = false;
           }
           else{
-            tmp = tmp + "l2_big1,L2_W_"+std::to_string((*it)->layer_number)+",16,L2_B_"+
-            std::to_string((*it)->layer_number)+",13"+",l2_big0,"+
-            std::to_string((test)->n_out_feat)+",AllKernels + " + std::to_string(idx) + "); \n";
+            tmp= tmp + "l2_big1,L2_W_"+std::to_string((*it)->layer_number); // in + filter
+            tmp= tmp + ",L2_B_" + std::to_string((*it)->layer_number); // Bias
+            tmp= tmp + ",(int*)l2_big0"; // out
+            tmp= tmp + ",16"; // Norm 
+            tmp= tmp + ",13"; // Norm Bias
+            //tmp=tmp+ std::to_string((test)->n_out_feat);
+            tmp=tmp + ",AllKernels + " + std::to_string(idx) + "); \n";
             alternate = true;
           }
           function_num += 1;
@@ -1361,15 +1413,26 @@ int main(int argc, char* argv[]) {
     }
     // Prints the graph for debug purposes. Can be commented 
     // if not needed
-    //clog << green << "****** Graph Dump ******" << def << "\n";
-    //clog << graph.DebugString() << "\n";
-    //clog << green << "****** END Gaph Dump ******" << def << "\n";
+    ofstream graphDumpFile;
+    graphDumpFile.open("graphDump.txt");
+    graphDumpFile << graph.DebugString() << "\n";
+    graphDumpFile.close();
 
     // open GAP8 main code File
     ofstream CFile; // GAP8 network process main file
     ofstream DFile;  //GAP8 defines file
+    ofstream nphFile; 
     CFile.open(GAP8CodeDirName + "/network_process.c");
     DFile.open(GAP8CodeDirName + "/define.h");
+    nphFile.open(GAP8CodeDirName + "/network_process_proto.h");
+
+    // define .h and .c files for the generation weights & bias of GAP8 code
+  	ofstream H2File;
+  	ofstream C2File;
+  	H2File.open(GAP8CodeDirName + "/weights_bias.h");
+  	C2File.open(GAP8CodeDirName + "/weights_bias.c");
+  	// Initialize H2File and C2File
+  	initH2C2Files(H2File,C2File);
 
     //Create an arbitrary vector  of layers to be filled out when reading the graph
     std::vector<Layer*> layers;
@@ -1379,7 +1442,7 @@ int main(int argc, char* argv[]) {
 	try {
     	// Fill up layers vector with graph information
         // This can throw an exception if a problem occurs
-	  createLayersVector(layers,initWandB,GAP8CodeDirName,graph,l2_data,l_layer,ftp);  
+	  createLayersVector(layers,initWandB,GAP8CodeDirName,graph,l2_data,l_layer,ftp,H2File,C2File);  
 
     	// dump vector of layers for debug purposes. 
     	// can be commented out if not needed. 
@@ -1400,7 +1463,7 @@ int main(int argc, char* argv[]) {
 
       CFile << "#include \"network_process.h\"\n\n";
       CFile << "void network_process () { ";
-      createForLoopandHeader(layers, tmp, GAP8CodeDirName, tot_size_coeff,tot_size_bias);
+      createForLoopandHeader(layers, tmp, GAP8CodeDirName, tot_size_coeff,tot_size_bias,nphFile,H2File, C2File);
       CFile << tmp << "\n";
   
       std::vector<Layer*>::iterator it = layers.end()-1;
@@ -1410,11 +1473,18 @@ int main(int argc, char* argv[]) {
    	  	// catch block
       	CFile.close(); // Close GAP8 network process code file
       	DFile.close(); // Close GAP8 Define code file
+      	nphFile << "#endif" << "\n";
+      	nphFile.close(); // close network_process.h file
       	return EXIT_FAILURE; 
     } 
 
     CFile.close(); // Close GAP8 network process code file
     DFile.close(); // Close GAP8 Define code file
+    nphFile << "#endif" << "\n";
+    nphFile.close(); // close network_process.h file
+    H2File << "#endif\n";
+  	H2File.close();
+  	C2File.close();
 
     clog << "\n";
     clog << green << "****** GAP8 Code Generation Completed Successfully ******" << def << "\n";

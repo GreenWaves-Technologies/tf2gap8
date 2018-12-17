@@ -33,7 +33,12 @@
 # This script shell calls TF2GAP8 with the right parameters for running TtF2GAP8
 # on the cifar10.pbtxt graph obtained after the training phase of the Cifar10 example
 # Contributors: Corine Lamagdeleine
-python3 tf2gap8.py --input_graph $HOME/tensorflow/tf2gap8/examples/cifar10/data/cifar10.pbtxt \
+python3 tf2gap8.py \
+--input_graph $HOME/tensorflow/tf2gap8/examples/cifar10/data/cifar10.pbtxt \
 --input_checkpoint $HOME/tensorflow/tf2gap8/examples/cifar10/data/model.ckpt \
---input_node input/x_input --output_node prediction/y_output --tf_dir $HOME/tensorflow \
---floating_point false
+--input_node input/x_input \
+--output_node prediction/y_output \
+--tf_dir $HOME/tensorflow \
+--floating_point false \
+--freeze true
+

@@ -37,12 +37,17 @@ endif
 T2G_SDK_HOME=$(GAP_SDK_HOME)
 
 T2G_AT_ROOT=$(realpath $(T2G_SDK_HOME)/tools/autotiler)
-T2G_GENTILING=$(T2G_AT_ROOT)/GenTiling
+#T2G_GENTILING=$(T2G_AT_ROOT)/GenTiling
+T2G_GENTILING=$(T2G_AT_ROOT)/lib
+T2G_GENTILING_INC=$(T2G_AT_ROOT)/include
 T2G_STDTYPES=$(T2G_AT_ROOT)/StdTypes
-T2G_CNNSTDMODEL=$(T2G_AT_ROOT)/autotiler_generator/CnnStdModel
-T2G_CNNGENERATOR=$(T2G_CNNSTDMODEL)/CNN_Generator.c
-T2G_LIBTILE=$(T2G_GENTILING)/LibTile.a
-
+#T2G_CNNSTDMODEL=$(T2G_AT_ROOT)/autotiler_generator/CnnStdModel
+T2G_CNNSTDMODEL=$(T2G_AT_ROOT)/generators/CNN/generator/src
+T2G_CNNSTDMODEL_INC=$(T2G_AT_ROOT)/generators/CNN/generator/include
+T2G_CNNGENERATOR=$(T2G_CNNSTDMODEL)/CNN_Generators.c
+T2G_LIBTILE=$(T2G_GENTILING)/libtile.a
+T2G_CNNKERNEL_SRC= $(T2G_AT_ROOT)/generators/CNN/kernels/src
+T2G_CNNKERNEL_INC = $(T2G_AT_ROOT)/generators/CNN/kernels/include
 T2G_TF2GAP8_ROOT=$(T2G_SDK_HOME)/tf2gap8/build
 # Python environment is in tf2gap/virtualenv
 T2G_PYTHONENV=$(T2G_TF2GAP8_ROOT)/virtualenv
@@ -120,7 +125,7 @@ $$(T2G_$(7)_OUTPUT_DIR)/.run_$(7)_tf2gap8: $$(T2G_$(7)_OPTIMIZED_GRAPH_PATH)
 
 $$(T2G_$(7)_OUTPUT_DIR)/$(7)_tilegen: $$(T2G_$(7)_OUTPUT_DIR)/.run_$(7)_tf2gap8
 	@echo "\n--- COMPILE CODE GENERATOR ---"
-	$(CC) -g -o $$@ -I$(T2G_GENTILING) -I$(T2G_GEN_INC_DIR) -I$(T2G_STDTYPES) -I$(T2G_CNNSTDMODEL) -I$$(T2G_$(7)_CODE_GEN_PATH) $(T2G_MODEL_KERNELS) $(T2G_CNNGENERATOR) $(T2G_LIBTILE)
+	$(CC) -g -o $$@ -I$(T2G_GENTILING) -I$(T2G_GENTILING_INC) -I$(T2G_GEN_INC_DIR) -I$(T2G_STDTYPES) -I$(T2G_CNNSTDMODEL) -I$(T2G_CNNSTDMODEL_INC) -I$$(T2G_$(7)_CODE_GEN_PATH) $(T2G_MODEL_KERNELS) $(T2G_CNNGENERATOR) $(T2G_LIBTILE)
 
 $$(T2G_$(7)_T2G_GEN_FILES) : $$(T2G_$(7)_OUTPUT_DIR)/$(7)_tilegen
 	@echo "\n--- RUN GENERATOR ---"

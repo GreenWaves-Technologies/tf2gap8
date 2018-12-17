@@ -33,8 +33,12 @@
 # This script shell calls TF2GAP8 with the right parameters for running TtF2GAP8
 # on the mnist_demo.pbtxt graph obtained after the training phase of the mnist example
 # Contributors: Corine Lamagdeleine
-python3 tf2gap8.py  --input_graph $HOME/tensorflow/tf2gap8/examples/mnist/data/mnist.pbtxt \
+python3 tf2gap8.py \
+--input_graph $HOME/tensorflow/tf2gap8/examples/mnist/data/mnist.pbtxt \
 --input_checkpoint $HOME/tensorflow/tf2gap8/examples/mnist/data/model.ckpt \
 --input_node x_inter \
---output_node y_output --tf_dir $HOME/tensorflow \
---floating_point false
+--output_node y_output \
+--tf_dir $HOME/tensorflow \
+--floating_point false \
+--freeze true
+

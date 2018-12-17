@@ -145,6 +145,12 @@ node {
       }
     }
   }
+  attr {
+    key: "output_type"
+    value {
+      type: DT_INT64
+    }
+  }
 }
 node {
   name: "LAYER_1/truncated_normal/shape"
@@ -2238,6 +2244,12 @@ node {
       }
     }
   }
+  attr {
+    key: "output_type"
+    value {
+      type: DT_INT64
+    }
+  }
 }
 node {
   name: "cross_entropy/Rank"
@@ -3553,6 +3565,14 @@ node {
   name: "Training/gradients/COST/Mean_grad/Const"
   op: "Const"
   attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@Training/gradients/COST/Mean_grad/Shape_1"
+      }
+    }
+  }
+  attr {
     key: "_output_shapes"
     value {
       list {
@@ -3603,6 +3623,14 @@ node {
     }
   }
   attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@Training/gradients/COST/Mean_grad/Shape_1"
+      }
+    }
+  }
+  attr {
     key: "_output_shapes"
     value {
       list {
@@ -3621,6 +3649,14 @@ node {
 node {
   name: "Training/gradients/COST/Mean_grad/Const_1"
   op: "Const"
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@Training/gradients/COST/Mean_grad/Shape_1"
+      }
+    }
+  }
   attr {
     key: "_output_shapes"
     value {
@@ -3672,6 +3708,14 @@ node {
     }
   }
   attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@Training/gradients/COST/Mean_grad/Shape_1"
+      }
+    }
+  }
+  attr {
     key: "_output_shapes"
     value {
       list {
@@ -3690,6 +3734,14 @@ node {
 node {
   name: "Training/gradients/COST/Mean_grad/Maximum/y"
   op: "Const"
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@Training/gradients/COST/Mean_grad/Shape_1"
+      }
+    }
+  }
   attr {
     key: "_output_shapes"
     value {
@@ -3729,6 +3781,14 @@ node {
     }
   }
   attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@Training/gradients/COST/Mean_grad/Shape_1"
+      }
+    }
+  }
+  attr {
     key: "_output_shapes"
     value {
       list {
@@ -3747,6 +3807,14 @@ node {
     key: "T"
     value {
       type: DT_INT32
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@Training/gradients/COST/Mean_grad/Shape_1"
+      }
     }
   }
   attr {
@@ -4972,9 +5040,16 @@ node {
   }
 }
 node {
-  name: "Training/gradients/LAYER_2/Conv2D_grad/Shape"
-  op: "Shape"
+  name: "Training/gradients/LAYER_2/Conv2D_grad/ShapeN"
+  op: "ShapeN"
   input: "LAYER_1/MaxPool"
+  input: "LAYER_2/Variable/read"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
   attr {
     key: "T"
     value {
@@ -4985,6 +5060,11 @@ node {
     key: "_output_shapes"
     value {
       list {
+        shape {
+          dim {
+            size: 4
+          }
+        }
         shape {
           dim {
             size: 4
@@ -5003,7 +5083,7 @@ node {
 node {
   name: "Training/gradients/LAYER_2/Conv2D_grad/Conv2DBackpropInput"
   op: "Conv2DBackpropInput"
-  input: "Training/gradients/LAYER_2/Conv2D_grad/Shape"
+  input: "Training/gradients/LAYER_2/Conv2D_grad/ShapeN"
   input: "LAYER_2/Variable/read"
   input: "Training/gradients/LAYER_2/add_grad/tuple/control_dependency"
   attr {
@@ -5064,46 +5144,10 @@ node {
   }
 }
 node {
-  name: "Training/gradients/LAYER_2/Conv2D_grad/Shape_1"
-  op: "Const"
-  attr {
-    key: "_output_shapes"
-    value {
-      list {
-        shape {
-          dim {
-            size: 4
-          }
-        }
-      }
-    }
-  }
-  attr {
-    key: "dtype"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_INT32
-        tensor_shape {
-          dim {
-            size: 4
-          }
-        }
-        tensor_content: "\005\000\000\000\005\000\000\000\010\000\000\000\014\000\000\000"
-      }
-    }
-  }
-}
-node {
   name: "Training/gradients/LAYER_2/Conv2D_grad/Conv2DBackpropFilter"
   op: "Conv2DBackpropFilter"
   input: "LAYER_1/MaxPool"
-  input: "Training/gradients/LAYER_2/Conv2D_grad/Shape_1"
+  input: "Training/gradients/LAYER_2/Conv2D_grad/ShapeN:1"
   input: "Training/gradients/LAYER_2/add_grad/tuple/control_dependency"
   attr {
     key: "T"
@@ -5117,16 +5161,16 @@ node {
       list {
         shape {
           dim {
-            size: 5
+            size: -1
           }
           dim {
-            size: 5
+            size: -1
           }
           dim {
-            size: 8
+            size: -1
           }
           dim {
-            size: 12
+            size: -1
           }
         }
       }
@@ -5629,9 +5673,16 @@ node {
   }
 }
 node {
-  name: "Training/gradients/LAYER_1/Conv2D_grad/Shape"
-  op: "Shape"
+  name: "Training/gradients/LAYER_1/Conv2D_grad/ShapeN"
+  op: "ShapeN"
   input: "input/x_input"
+  input: "LAYER_1/Variable/read"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
   attr {
     key: "T"
     value {
@@ -5642,6 +5693,11 @@ node {
     key: "_output_shapes"
     value {
       list {
+        shape {
+          dim {
+            size: 4
+          }
+        }
         shape {
           dim {
             size: 4
@@ -5660,7 +5716,7 @@ node {
 node {
   name: "Training/gradients/LAYER_1/Conv2D_grad/Conv2DBackpropInput"
   op: "Conv2DBackpropInput"
-  input: "Training/gradients/LAYER_1/Conv2D_grad/Shape"
+  input: "Training/gradients/LAYER_1/Conv2D_grad/ShapeN"
   input: "LAYER_1/Variable/read"
   input: "Training/gradients/LAYER_1/add_grad/tuple/control_dependency"
   attr {
@@ -5721,46 +5777,10 @@ node {
   }
 }
 node {
-  name: "Training/gradients/LAYER_1/Conv2D_grad/Shape_1"
-  op: "Const"
-  attr {
-    key: "_output_shapes"
-    value {
-      list {
-        shape {
-          dim {
-            size: 4
-          }
-        }
-      }
-    }
-  }
-  attr {
-    key: "dtype"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_INT32
-        tensor_shape {
-          dim {
-            size: 4
-          }
-        }
-        tensor_content: "\005\000\000\000\005\000\000\000\001\000\000\000\010\000\000\000"
-      }
-    }
-  }
-}
-node {
   name: "Training/gradients/LAYER_1/Conv2D_grad/Conv2DBackpropFilter"
   op: "Conv2DBackpropFilter"
   input: "input/x_input"
-  input: "Training/gradients/LAYER_1/Conv2D_grad/Shape_1"
+  input: "Training/gradients/LAYER_1/Conv2D_grad/ShapeN:1"
   input: "Training/gradients/LAYER_1/add_grad/tuple/control_dependency"
   attr {
     key: "T"
@@ -5774,16 +5794,16 @@ node {
       list {
         shape {
           dim {
-            size: 5
+            size: -1
           }
           dim {
-            size: 5
+            size: -1
           }
           dim {
-            size: 1
+            size: -1
           }
           dim {
-            size: 8
+            size: -1
           }
         }
       }
@@ -5914,7 +5934,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -5952,7 +5972,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -6006,7 +6026,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -6046,7 +6066,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -6067,7 +6087,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -6105,7 +6125,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -6159,7 +6179,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -6199,7 +6219,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -8991,7 +9011,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -9020,7 +9040,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -9067,7 +9087,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -9096,7 +9116,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -9237,7 +9257,7 @@ node {
         dtype: DT_STRING
         tensor_shape {
         }
-        string_val: "_temp_8afa19d3433c4ce2a6d502d5a9d5ece7/part"
+        string_val: "_temp_4b7e498d268941419e17687a9e819c8b/part"
       }
     }
   }
@@ -12321,7 +12341,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -12459,7 +12479,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@LAYER_1/Variable"
+        s: "loc:@FC_LAYER/Variable"
       }
     }
   }
@@ -12515,5 +12535,5 @@ node {
   input: "^save/restore_shard"
 }
 versions {
-  producer: 22
+  producer: 24
 }

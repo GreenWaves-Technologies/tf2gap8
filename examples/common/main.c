@@ -54,7 +54,18 @@ RT_L2_DATA short int l2_big1[BUF1_SIZE];
 
 
 static rt_perf_t *cluster_perf;
-extern Kernel_T AllKernels[];
+//extern Kernel_T AllKernels[];
+void table_print_data_t(short int * pt, int dim, int packet, char *s)
+{
+  int i;
+  printf("dim=%d\n", dim);
+  for(i=0;i<100;i++)
+  {
+    if (!(i%packet)) printf("\nindex=%d %s\t", i, s);
+    printf("%d ", *(pt+i));
+  }
+  printf("\n\n");
+}
 
 static void cluster_main()
 {
@@ -109,10 +120,12 @@ int main()
     int  max=0x80000000;
     unsigned char idx=0;
 
+    int *OutVal = (int *) l2_big0;
+
     for(i=0;i<CLast_NFEAT; i++){
-        printf(" feat %d: %d  \n ", i, l2_big0[i]);
-        sum += l2_big0[i];
-        if (l2_big0[i]>max) {max=l2_big0[i];idx=i;}
+        printf(" feat %d: %d  \n ", i, OutVal[i]);
+        sum += OutVal[i];
+        if (OutVal[i]>max) {max=OutVal[i];idx=i;}
     }
 
     printf("found %d\n",idx);

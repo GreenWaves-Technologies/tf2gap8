@@ -31,7 +31,7 @@
 #define NETWORK_PROCESS_H
 
 #include "Gap8.h"
-#include "KernelLibStdTypes.h"
+#include "CNN_BasicKernels.h"
 #include "CnnKernels.h"
 #include "weights_bias.h"
 #include "define.h"
