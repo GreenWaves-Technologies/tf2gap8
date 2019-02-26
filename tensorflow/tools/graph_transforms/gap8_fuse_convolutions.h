@@ -74,5 +74,20 @@ Status FuseReshapeAndMatmulAndAdd(
 	const GraphDef& input_graph_def,
 	const TransformFuncContext& context,
         GraphDef* output_graph_def);
+
+Status FuseReshapeAndMatmulAndAddAndRelu(
+	const GraphDef& input_graph_def,
+	const TransformFuncContext& context,
+        GraphDef* output_graph_def);
+
+Status FuseMatmulAndAddAndRelu(
+	const GraphDef& input_graph_def,
+	const TransformFuncContext& context,
+        GraphDef* output_graph_def);
+Status FuseMatmulAndAdd(
+	const GraphDef& input_graph_def,
+	const TransformFuncContext& context,
+        GraphDef* output_graph_def);
+
 }
 }

@@ -60,4 +60,8 @@ void settingOutputVariable(const tensorflow::NodeDef &node,
 			    int& n_out_feat,
 			    int& output_height,
 			    int& output_width);
+void settingDenseOutputVariable(const tensorflow::NodeDef &node,
+        int& n_out_feat,
+        int& output_height,
+        int& output_width);
 #endif

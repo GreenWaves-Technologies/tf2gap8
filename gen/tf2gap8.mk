@@ -70,8 +70,15 @@ T2G_TF2GAP8_PATH=$(T2G_TOOLS_DIR)/$(T2G_TF2GAP8)
 T2G_TF2GAP8_CODE_DIR=$(T2G_TF2GAP8_ROOT)/code
 
 T2G_TRANSFORMS=strip_unused_nodes remove_nodes(op=Identity) fuse_conv2d_add_relu_maxpool \
-  fuse_conv2d_add_relu fuse_conv2d_add_maxpool fuse_GAP8_conv2d_maxpool \
-  fuse_reshape_matmul_add_relu_softmax fuse_reshape_matmul_add_softmax
+                            fuse_conv2d_add_relu \
+                            fuse_conv2d_add_maxpool \
+                            fuse_GAP8_conv2d_maxpool \
+                            fuse_reshape_matmul_add_relu_softmax \
+                            fuse_reshape_matmul_add_softmax \
+                            fuse_reshape_matmul_add_relu \
+                            fuse_reshape_matmul_add \
+                            fuse_matmul_add_relu \
+                            fuse_matmul_add 
 
 T2G_GEN_FILES=CnnKernels.c CnnKernels.h CnnKernelsInit.c CnnKernelsInit.h
 

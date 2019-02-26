@@ -244,6 +244,28 @@ int get_output_height(const tensorflow::NodeDef &node){
     return 0; 
 }
 
+std::string remove_char( std::string str, char ch )
+{
+    // remove all occurrences of char ch from str
+    str.erase( std::remove( str.begin(), str.end(), ch ), str.end() ) ;
+    return str ;
+}
+
+void settingDenseOutputVariable(const tensorflow::NodeDef &node,
+        int& n_out_feat,
+        int& output_height,
+        int& output_width){
+
+     std::string shapeStr = get_node_output_shapes(node);
+     shapeStr = remove_char(shapeStr,'[');
+     shapeStr = remove_char(shapeStr,']');
+     shapeStr = remove_char(shapeStr,'?');
+     shapeStr = remove_char(shapeStr,',');
+     //Check it's a One dim Tensor
+     n_out_feat = std::stoi (shapeStr);
+     output_height=1;
+     output_width=1;
+}
 
 void settingOutputVariable(const tensorflow::NodeDef &node,
 		    int& n_out_feat,

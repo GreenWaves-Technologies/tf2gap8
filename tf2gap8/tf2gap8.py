@@ -215,7 +215,19 @@ def main(argv):
                           '--out_graph=' + getOptimizedGraphName(inputGraph),
                           '--inputs=' + inputNode,
                           '--outputs=' + outputNode,
-                          '--transforms=strip_unused_nodes remove_nodes(op=Identity) fuse_conv2d_add_relu_maxpool fuse_conv2d_add_relu fuse_conv2d_add_maxpool fuse_GAP8_conv2d_maxpool fuse_reshape_matmul_add_relu_softmax fuse_reshape_matmul_add_softmax'], stdout=subprocess.PIPE)
+                          '--transforms=strip_unused_nodes remove_nodes(op=Identity) \
+                           fuse_conv2d_add_relu_maxpool \
+                            fuse_conv2d_add_relu \
+                            fuse_conv2d_add_maxpool \
+                            fuse_GAP8_conv2d_maxpool \
+                            fuse_reshape_matmul_add_relu_softmax \
+                            fuse_reshape_matmul_add_softmax \
+                            fuse_reshape_matmul_add_relu \
+                            fuse_reshape_matmul_add \
+                            fuse_matmul_add_relu \
+                            fuse_matmul_add \
+                            '], \
+                            stdout=subprocess.PIPE)
     
     #Now generate the GAP8 code from the optimized graph
     #This program now called loader.cc must be called with the file name (without path) and #directory name as parameters of the file

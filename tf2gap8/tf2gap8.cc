@@ -792,12 +792,12 @@ void createLayersVector(std::vector<Layer*>& layers,
           tf2gap8Exception exc8(string("GAP8DenseLayer operator attributes error\n") + status.error_message());
           throw exc8;
         }
-	int needless1, needless2;
-        settingOutputVariable(node, OutputNumber, needless1,needless2);
+	      int needless1, needless2;
+        settingDenseOutputVariable(node, OutputNumber,  OutputHeight, OutputWidth);
         l_layer[layer_num].type=dense;
         for (const string& input : node.input()) {
                 const NodeDef *test=FindNodebyName(input, graph);
-		std::string op2 = get_node_operation(*test);
+		            std::string op2 = get_node_operation(*test);
                 clog << " Input node " << input.c_str() << " Operator " << op2.c_str() << "\n";
                 if (!op2.compare("Const")){
                     if (s == 1){
@@ -1413,11 +1413,11 @@ int main(int argc, char* argv[]) {
     }
     // Prints the graph for debug purposes. Can be commented 
     // if not needed
-    ofstream graphDumpFile;
+    /*ofstream graphDumpFile;
     graphDumpFile.open("graphDump.txt");
     graphDumpFile << graph.DebugString() << "\n";
     graphDumpFile.close();
-
+*/
     // open GAP8 main code File
     ofstream CFile; // GAP8 network process main file
     ofstream DFile;  //GAP8 defines file
@@ -1446,9 +1446,10 @@ int main(int argc, char* argv[]) {
 
     	// dump vector of layers for debug purposes. 
     	// can be commented out if not needed. 
-      clog << green << "****** Dump Effective Layers ******" << def << "\n";
+      /*clog << green << "****** Dump Effective Layers ******" << def << "\n";
     	dump_layers(l_layer);
       clog << green << "****** END Dump Effective Layers ******" << def << "\n"; 
+      */
     	// Process the layers vector and generate the 
     	// GAP8 code corresponding to the protobuf GRAPH
     

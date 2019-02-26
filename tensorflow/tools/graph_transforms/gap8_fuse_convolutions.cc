@@ -558,8 +558,96 @@ Status FuseReshapeAndMatmulAndAddAndReluAndSoftmax(
                     CopyNodeAttr(softmax_node, "T", "T", &dense_node);
                     CopyNodeAttr(softmax_node, "_output_shapes", "_output_shapes", &dense_node);
                     AddNodeAttr("relu",true,&dense_node);
+                    AddNodeAttr("softmax",true,&dense_node);
                     new_nodes->push_back(dense_node);
                     any_nodes_removed=true;
+
+                      return Status::OK();
+
+                  },
+                  {}, &replaced_graph_def));
+  *output_graph_def = replaced_graph_def;
+  current_graph_def=replaced_graph_def;
+  } while (any_nodes_removed);
+  return Status::OK();
+}
+
+Status FuseReshapeAndMatmulAndAddAndRelu( 
+        const GraphDef& input_graph_def,
+        const TransformFuncContext& context,
+        GraphDef* output_graph_def) {
+
+  bool any_nodes_removed;
+  GraphDef current_graph_def;
+  current_graph_def=input_graph_def;
+  do {
+  any_nodes_removed=false;
+  GraphDef replaced_graph_def;
+  TF_RETURN_IF_ERROR(ReplaceMatchingOpTypes(
+               current_graph_def,  // clang-format off
+               
+                     {"Relu",
+                         {
+                            {"Add",
+                               {
+                                {"MatMul",
+                                     {
+                                      {"Reshape",
+                                           {
+                                           {"*"},
+                                           {"*"}
+                                           }
+                                       },
+                                      {"*"}
+                                      }
+                                 },
+                                {"*"}
+                               }
+                            }
+                         }
+                     },
+               [&any_nodes_removed](
+                  const NodeMatch& match,
+                  const std::set<string>& input_nodes,
+                  const std::set<string>& output_nodes,
+                  std::vector<NodeDef>* new_nodes){
+
+                    const NodeDef& relu_node = match.node;
+                    CHECK_EQ("Relu", relu_node.op());
+                    const NodeDef& add_node = match.inputs[0].node;
+                    CHECK_EQ("Add", add_node.op());
+                    const NodeDef& matmul_node = match.inputs[0].inputs[0].node;
+                    CHECK_EQ("MatMul", matmul_node.op());
+                    const NodeDef& reshape_node = match.inputs[0].inputs[0].inputs[0].node;
+                    CHECK_EQ("Reshape", reshape_node.op());
+
+                  
+                    const NodeDef& bias_node = match.inputs[0].inputs[1].node;
+                    const NodeDef& weights_node = match.inputs[0].inputs[0].inputs[1].node;
+                    const NodeDef& shape_node = match.inputs[0].inputs[0].inputs[0].inputs[1].node;
+                    const NodeDef& input_node = match.inputs[0].inputs[0].inputs[0].inputs[0].node;
+                    cerr << "++++++ FuseReshapeAndMatmulAndAddAndRelu +++++++++" << "\n";
+                    new_nodes->push_back(bias_node);
+                    new_nodes->push_back(weights_node);
+                    new_nodes->push_back(input_node);
+                    new_nodes->push_back(shape_node);
+
+                    
+                    NodeDef dense_node;
+                    dense_node.set_op("GAP8_DenseLayer");
+                    dense_node.set_name(match.node.name());
+                    AddNodeInput(reshape_node.input(0), &dense_node);
+                    AddNodeInput(reshape_node.input(1), &dense_node);
+                    AddNodeInput(add_node.input(1), &dense_node);
+                    AddNodeInput(matmul_node.input(1), &dense_node);
+                    CopyNodeAttr(relu_node, "T", "T", &dense_node);
+                    CopyNodeAttr(relu_node, "_output_shapes", "_output_shapes", &dense_node);
+                    AddNodeAttr("relu",true,&dense_node);
+                    AddNodeAttr("softmax",false,&dense_node);
+                    new_nodes->push_back(dense_node);
+                    any_nodes_removed=true;
+
+
 
                       return Status::OK();
 
@@ -637,15 +725,15 @@ Status FuseReshapeAndMatmulAndAddAndSoftmax(
                AddNodeInput(reshape_node.input(0), &dense_node);
                AddNodeInput(reshape_node.input(1), &dense_node);
                AddNodeInput(add_node.input(1), &dense_node);
-                 AddNodeInput(matmul_node.input(1), &dense_node);
-            //   AddNodeInput(matmul_node.input(1), &dense_node);
+               AddNodeInput(matmul_node.input(1), &dense_node);
                CopyNodeAttr(softmax_node, "T", "T", &dense_node);
                CopyNodeAttr(softmax_node, "_output_shapes", "_output_shapes", &dense_node);
                AddNodeAttr("relu",false,&dense_node);
+               AddNodeAttr("softmax",true,&dense_node);
                new_nodes->push_back(dense_node);
                any_nodes_removed=true;
 
-                 return Status::OK();
+               return Status::OK();
 
              },
              {}, &replaced_graph_def));
@@ -719,6 +807,7 @@ Status FuseReshapeAndMatmulAndAddAndSoftmax(
 						  CopyNodeAttr(add_node, "T", "T", &dense_node);
 						  CopyNodeAttr(add_node, "_output_shapes", "_output_shapes", &dense_node);
 						  AddNodeAttr("relu",false,&dense_node);
+              AddNodeAttr("softmax", false, &dense_node);
 						  new_nodes->push_back(dense_node);
 						  any_nodes_removed=true;
 
@@ -732,6 +821,149 @@ Status FuseReshapeAndMatmulAndAddAndSoftmax(
     } while (any_nodes_removed);
     return Status::OK();
   }
+
+
+  Status FuseMatmulAndAddAndRelu( 
+        const GraphDef& input_graph_def,
+        const TransformFuncContext& context,
+        GraphDef* output_graph_def) {
+
+  bool any_nodes_removed;
+  GraphDef current_graph_def;
+  current_graph_def=input_graph_def;
+  do {
+  any_nodes_removed=false;
+  GraphDef replaced_graph_def;
+  TF_RETURN_IF_ERROR(ReplaceMatchingOpTypes(
+               current_graph_def,  // clang-format off
+                     {"Relu",
+                         {
+                            {"Add",
+                               {
+                                {"MatMul",
+                                     {
+                                      {"*"},
+                                      {"* AddNodeInput(matmul_node.input(0), &dense_node);"}
+                                     }
+                                 },
+                                {"*"}
+                               }
+                            }
+                         }
+                     },
+               [&any_nodes_removed](
+                  const NodeMatch& match,
+                  const std::set<string>& input_nodes,
+                  const std::set<string>& output_nodes,
+                  std::vector<NodeDef>* new_nodes){
+
+                    const NodeDef& relu_node = match.node;
+                    CHECK_EQ("Relu", relu_node.op());
+                    const NodeDef& add_node = match.inputs[0].node;
+                    CHECK_EQ("Add", add_node.op());
+                    const NodeDef& matmul_node = match.inputs[0].inputs[0].node;
+                    CHECK_EQ("MatMul", matmul_node.op());
+
+                    const NodeDef& bias_node = match.inputs[0].inputs[1].node;
+                    const NodeDef& weights_node = match.inputs[0].inputs[0].inputs[1].node;
+                    const NodeDef& input_node = match.inputs[0].inputs[0].inputs[0].node;
+                    cerr << "++++++ FuseReshapeAndAddAndRelu +++++++++" << "\n";
+                    new_nodes->push_back(bias_node);
+                    new_nodes->push_back(weights_node);
+                    new_nodes->push_back(input_node);
+
+                    NodeDef dense_node;
+                    dense_node.set_op("GAP8_DenseLayer");
+                    dense_node.set_name(match.node.name());
+                    AddNodeInput(add_node.input(1), &dense_node);
+                    AddNodeInput(matmul_node.input(1), &dense_node);
+                    AddNodeInput(matmul_node.input(0), &dense_node);
+                    CopyNodeAttr(relu_node, "T", "T", &dense_node);
+                    CopyNodeAttr(relu_node, "_output_shapes", "_output_shapes", &dense_node);
+                    AddNodeAttr("relu",true,&dense_node);
+                    AddNodeAttr("softmax",false,&dense_node);
+                    new_nodes->push_back(dense_node);
+                    any_nodes_removed=true;
+
+                      return Status::OK();
+
+                  },
+                  {}, &replaced_graph_def));
+  *output_graph_def = replaced_graph_def;
+  current_graph_def=replaced_graph_def;
+  } while (any_nodes_removed);
+  return Status::OK();
+}
+
+
+  Status FuseMatmulAndAdd(
+                const GraphDef& input_graph_def,
+                const TransformFuncContext& context,
+                GraphDef* output_graph_def) {
+    
+    bool any_nodes_removed;
+    GraphDef current_graph_def;
+    current_graph_def=input_graph_def;
+    do {
+      any_nodes_removed=false;
+      GraphDef replaced_graph_def;
+      TF_RETURN_IF_ERROR(ReplaceMatchingOpTypes(
+            current_graph_def,  // clang-format off
+            {"Add",
+                {
+                  {"MatMul",
+                       {
+                        {"*"},
+                        {"*"}
+                       }
+                   },
+                  {"*"}
+                 }
+            },
+            [&any_nodes_removed] (
+              const NodeMatch& match,
+              const std::set<string>& input_nodes,
+              const std::set<string>& output_nodes,
+              std::vector<NodeDef>* new_nodes){ 
+
+                const NodeDef& add_node = match.node;
+                CHECK_EQ("Add", add_node.op());
+                const NodeDef& matmul_node = match.inputs[0].node;
+                CHECK_EQ("MatMul", matmul_node.op());
+                
+                const NodeDef& bias_node = match.inputs[1].node;
+                const NodeDef& weights_node = match.inputs[0].inputs[1].node;
+                const NodeDef& input_node = match.inputs[0].inputs[0].node;
+                cerr << "++++++ FuseMatmulAndAdd +++++++++" << "\n";
+                new_nodes->push_back(bias_node);
+                new_nodes->push_back(weights_node);
+                new_nodes->push_back(input_node);
+
+                NodeDef dense_node;
+                dense_node.set_op("GAP8_DenseLayer");
+                dense_node.set_name(match.node.name());
+                AddNodeInput(add_node.input(1), &dense_node);
+                AddNodeInput(matmul_node.input(1), &dense_node);
+                AddNodeInput(matmul_node.input(0), &dense_node);
+                CopyNodeAttr(add_node, "T", "T", &dense_node);
+                CopyNodeAttr(add_node, "_output_shapes", "_output_shapes", &dense_node);
+                AddNodeAttr("relu",false,&dense_node);
+                AddNodeAttr("softmax",false,&dense_node);
+                new_nodes->push_back(dense_node);
+                any_nodes_removed=true;
+
+                return Status::OK();
+
+              },
+            {}, &replaced_graph_def));
+
+      *output_graph_def = replaced_graph_def;
+      current_graph_def=replaced_graph_def;
+    } while (any_nodes_removed);
+    return Status::OK();
+  }
+
+
    
 REGISTER_GRAPH_TRANSFORM("fuse_conv2d_add_relu_maxpool", FuseConv2DAndAddAndReluAndMaxpool);
 
@@ -748,6 +980,13 @@ REGISTER_GRAPH_TRANSFORM("fuse_reshape_matmul_add_relu_softmax",FuseReshapeAndMa
 REGISTER_GRAPH_TRANSFORM("fuse_reshape_matmul_add_softmax", FuseReshapeAndMatmulAndAddAndSoftmax);
 
 REGISTER_GRAPH_TRANSFORM("fuse_reshape_matmul_add", FuseReshapeAndMatmulAndAdd);
+
+REGISTER_GRAPH_TRANSFORM("fuse_reshape_matmul_add_relu",FuseReshapeAndMatmulAndAddAndRelu);
+
+REGISTER_GRAPH_TRANSFORM("fuse_matmul_add_relu", FuseMatmulAndAddAndRelu);
+
+REGISTER_GRAPH_TRANSFORM("fuse_matmul_add",FuseMatmulAndAdd);
   
+
 } // namespace graph_transforms
 } // namespace tensorflow
