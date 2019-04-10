@@ -52,6 +52,7 @@ This version is prepared for the April2 2018 release
 #include "node.h"
 #include "Layer.h"
 #include "ConvLayer.h"
+#include "DepthwiseConvLayer.h"
 #include "PoolLayer.h"
 #include "DenseLayer.h"
 #include "GAP8Tensor.h"
@@ -402,7 +403,7 @@ void fillDenseWeightTemplate(std::string& initWandB,
 }
 
 // Fills header file of name "name"
-// The ftp boolean indicated of we want the generation of weights and bias in floating point or not
+// The ftp boolean indicates if we want the generation of weights and bias in floating point or not
 void fillHeaderFile(ofstream& HFile,
                     ofstream& CFile, 
                     const NodeDef* test,
@@ -570,6 +571,59 @@ Status get_attributes_conv(const NodeDef& node, bool *relu,
     status=(GetNodeAttr(*attrslice,"maxpool_padding", &maxpool_padding_string));
     status.Update(GetNodeAttr(*attrslice,"maxpool_strides", &maxpool_strides_value));
   }
+  *strides=strides_value[1];
+
+  if (padding_string.compare(valid) != 0)
+    status.Update(status2);
+  
+  return status;
+};
+
+Status get_attributes_depthwiseconv(const NodeDef& node, bool *relu,
+                                    bool *maxpool, int *pooling_factor, 
+                                    int *padding, int *strides) {
+  
+  //Gets the attributes of a convolutional layer
+  
+  //Initialize requested parameter values
+  Status status;
+  Status status2(::tensorflow::error::UNIMPLEMENTED, "Padding VALID is not supported by the GAP8 CNN library");
+  *relu=false;
+  *maxpool=false;
+  *pooling_factor=0;
+  *padding=0;
+  *strides=0;
+  string valid("VALID");
+
+  // Define other values for some requested parameters, corresponding to the types under which 
+  // they are stored in the protobuf file
+  std::vector<int64> strides_value;
+  std::vector<int64> pooling_value;
+  std::vector<int64> maxpool_strides_value;
+  string padding_string;
+  string maxpool_padding_string;
+
+  AttrSlice* attrslice = new AttrSlice(node);
+  
+  clog << "Getting Depthwise Convolutional Layer attributes (get_attributes_depthwiseconv)" << "\n";
+
+  //status=GetNodeAttr(*attrslice,"relu", relu);
+  //status=(GetNodeAttr(*attrslice,"maxpool",maxpool));
+  //status=(GetNodeAttr(*attrslice,"pooling_factor", &pooling_value));
+  /*
+  if (!status.ok())
+     status=(GetNodeAttr(*attrslice,"pooling_factor",pooling_factor));
+  else
+    *pooling_factor=pooling_value[1];
+  */
+  status=(GetNodeAttr(*attrslice,"padding", &padding_string));
+  status=(GetNodeAttr(*attrslice,"strides", &strides_value));
+  /*
+  if (*maxpool) {
+    status=(GetNodeAttr(*attrslice,"maxpool_padding", &maxpool_padding_string));
+    status.Update(GetNodeAttr(*attrslice,"maxpool_strides", &maxpool_strides_value));
+  }
+  */
   *strides=strides_value[1];
 
   if (padding_string.compare(valid) != 0)
@@ -792,7 +846,7 @@ void createLayersVector(std::vector<Layer*>& layers,
           tf2gap8Exception exc8(string("GAP8DenseLayer operator attributes error\n") + status.error_message());
           throw exc8;
         }
-	      int needless1, needless2;
+
         settingDenseOutputVariable(node, OutputNumber,  OutputHeight, OutputWidth);
         l_layer[layer_num].type=dense;
         for (const string& input : node.input()) {
@@ -847,19 +901,90 @@ void createLayersVector(std::vector<Layer*>& layers,
       else if (!op.compare("Placeholder")){
         clog << "\n";
         clog << green << "Treating a node of type PlaceHolder" << def << "\n";
-	l_layer[layer_num].type=placeholder;
-	settingOutputVariable(node, lastOutputNumber,lastOutputHeight,lastOutputWidth);
-	l_layer[layer_num].out_width = lastOutputWidth;
+	      l_layer[layer_num].type=placeholder;
+	      settingOutputVariable(node, lastOutputNumber,lastOutputHeight,lastOutputWidth);
+	      l_layer[layer_num].out_width = lastOutputWidth;
         l_layer[layer_num].out_height = lastOutputHeight;
         l_layer[layer_num].n_out_feat = lastOutputNumber;
         reorder_layers(l_layer, layer_num);
-      clog << green << "End of Treating a node of type PlaceHolder" << def << "\n";
+        clog << green << "End of Treating a node of type PlaceHolder" << def << "\n";
       }
       else if (!op.compare("Reshape")){
         clog << "\n";
         clog << "Treating a node of type Reshape" << "\n";
-	// We do not create a specific layer for it but just change the last output variables
-	settingOutputVariable(node, lastOutputNumber,lastOutputHeight,lastOutputWidth);
+	     // We do not create a specific layer for it but just change the last output variables
+	     settingOutputVariable(node, lastOutputNumber,lastOutputHeight,lastOutputWidth);
+      }
+      else if (!op.compare("GAP8_Depthwise_Conv2D")) {
+        clog << "\n";
+        clog << "Treating a node of type GAP8_Depthwise_Conv2D" << "\n";
+
+        // Initialize some variables
+        bool relu; // relu: with or without Relu
+        bool maxpool; // relu: with or without Relu
+        int pooling_factor;
+        int padding;
+        int stride;
+        //int maxpool_padding;
+        //int maxpool_strides;
+        int filterWidth=0; // width of the GAP8_Conv2D filter
+        int filterHeight=0; // Height of the GAP8_Conv2D filter
+        char is_weights = 1; // set to true as the first Const input to the GAP8_Conv2D node contains the Weights parameters. 
+                            // The second will contain the Bias parameters
+
+        //get Convolutional layer attributes
+        status=get_attributes_depthwiseconv(node, &relu, &maxpool,&pooling_factor, &padding, &stride);
+        if (!status.ok()) {
+          tf2gap8Exception exc7(string("GAP8_Depthwise_Conv2D operator attributes error\n") + status.error_message());
+          throw exc7;
+        }
+        
+        // Get node output parameters
+        settingOutputVariable(node, OutputNumber, OutputHeight, OutputWidth);
+        
+        l_layer[layer_num].type=conv;
+
+        // Loop on the inputs of the node
+        for (const string& input : node.input()) {
+            const NodeDef *test=FindNodebyName(input, graph);
+            std::string op2 = get_node_operation(*test);
+            clog << "input node " << input.c_str() << " Operator " << op2.c_str() <<  "\n";
+            if (!op2.compare("Const")){
+              if (is_weights){
+                std::string name = Gap8CodeDirName + "/L2_W_" + std::to_string(i) + ".h";
+                fillHeaderFile(H2File,C2File, test ,i, is_weights, lastOutputNumber,
+                                lastOutputWidth,lastOutputHeight,filterHeight, filterWidth,ftp);
+                clog << "filterHeight " << filterHeight << "\n";
+                clog << "filterWidth " << filterWidth << "\n";
+                is_weights = 0;
+              }
+              else{
+                std::string name = Gap8CodeDirName + "/L2_B_" + std::to_string(i) + ".h";
+                fillHeaderFile(H2File,C2File, test ,i, is_weights, lastOutputNumber,
+                lastOutputWidth,lastOutputHeight,fh,fw,ftp);
+              }  
+            }
+            else {
+              // this is the connection to the previous layer
+              l_layer[layer_num].input=get_node_name(*test);    
+            }
+          }// end of for loop on the inputs
+          myName = "c"+std::to_string(i);
+          
+          
+          layers.push_back(new DepthwiseConvLayer(myName, i,  lastOutputNumber, OutputNumber,
+                                       filterWidth, filterHeight, relu,maxpool,pooling_factor,lastOutputHeight, 
+                                       lastOutputWidth,conv_norm_factor));
+          clog << "===> h " << OutputHeight << " w " << OutputWidth << " filterWidth " << filterWidth <<" filterHeight " << filterHeight << "\n";
+          
+          fill_layer_param_conv(l_layer, layer_num,OutputNumber, OutputHeight, OutputWidth,filterWidth,filterHeight,1);
+          settingLastOutputVariable(OutputNumber, OutputHeight, OutputWidth, 
+                                  lastOutputNumber, lastOutputHeight, 
+                                  lastOutputWidth);
+          i += 1;
+          reorder_layers(l_layer, layer_num);
+
+
       }
   }//end for    
 
@@ -1011,6 +1136,33 @@ std::string headerConvLayer(ConvLayer* test,
 
 }
 
+std::string headerDepthwiseConvLayer(DepthwiseConvLayer* test,
+                                    std::string name,
+                                    std::string kernel,
+                                    int &tot_size_coeff,
+                                    int &tot_size_bias){
+  std::string tmp = "{";
+  //tmp = tmp + "#define NAME \"" + name + "\"\n";
+  //tmp = tmp + "#define KERNEL\"" + kernel + "\"\n";
+  tmp = tmp + std::to_string(test->n_in_feat) + ",";
+  tmp = tmp + std::to_string(test->n_out_feat) + ",";
+  tmp = tmp + std::to_string(test->input_height) + ",";
+  tmp = tmp + std::to_string(test->input_width) + ",";
+  tmp = tmp + std::to_string(test->filter_width) + "," ;
+  tmp = tmp + std::to_string(test->filter_height) + "," ;
+  tmp = tmp + std::to_string(test->relu) + ",";
+  tmp = tmp + std::to_string(test->maxpool) + ",";
+  tmp = tmp + std::to_string(test->pooling_factor) + ",";
+  tmp = tmp + std::to_string(test->norm_factor);
+  tmp = tmp + "}," + "\n";
+  tot_size_coeff += test->n_out_feat * test->n_in_feat * test->filter_height * test->filter_width;
+  tot_size_bias += test->n_out_feat;
+  clog << "DepthwiseConv layer coeff" +  std::to_string(tot_size_coeff) + " bias " + 
+          std::to_string(tot_size_bias) + "\n";
+  return tmp;
+
+}
+
 std::string headerDenseLayer(DenseLayer* test,
                             std::string name,
                             std::string kernel,
@@ -1059,7 +1211,7 @@ void createForLoopandHeader(std::vector<Layer*>& layers,
   bool first = true;
   bool alternate = false;
   std::string function_name;
-  std::string tmp, tmp_conv, tmp_dense;
+  std::string tmp, tmp_conv, tmp_dense, tmp_depthwise_conv;
   std::string kernel;
   ofstream Hfile;
 
@@ -1069,10 +1221,12 @@ void createForLoopandHeader(std::vector<Layer*>& layers,
   
   Hfile.open(Gap8CodeDirName + "/param_layers.h");
   tmp_conv= tmp_conv + "struct param_conv_layer convLayers[] = {";
+  tmp_depthwise_conv= tmp_depthwise_conv + "struct param_depthwise_conv_layer depthwiseConvLayers[] = {";
   tmp_dense= tmp_dense + "struct param_dense_layer denseLayers[] = {";
   int idx=0;
   int nb_conv=0; // nb of convolutional layers
   int nb_dense=0; // nb of dense layers
+  int nb_depthwise_conv=0; // nb of depthwise_conv layers
 
   clog << "\n";
 
@@ -1161,14 +1315,59 @@ void createForLoopandHeader(std::vector<Layer*>& layers,
           function_num += 1;
           str = str +  "   " + tmp;
       }
-      else
-	cerr << orange << "Warning: Only conv and dense layers, eventually fused with Maxpool and Relu are supported by this bridge up to now." << "\n"; 
+      else if (!cls.compare("depthwise_conv")){
+        nb_depthwise_conv++;
+        DepthwiseConvLayer* test = (DepthwiseConvLayer *) *it;
+      
+        tmp = "DepthwiseConvLayer" + std::to_string(nb_depthwise_conv);
+        kernel = tmp;
+          tmp_depthwise_conv=tmp_depthwise_conv + headerDepthwiseConvLayer(test, tmp, kernel,tot_size_coeff,tot_size_bias);
+          //Hfile.close();
+          tmp = "     " + tmp;
+          str = str + tmp  +"(";
+          // if first call, l2_x et sortie dans l_big0 ou l_big1 alternativement
+          std::string inBuf, outBuf;
+          if (first){
+            inBuf="l2_x";
+            outBuf="l2_big0";
+            first = false;
+            alternate = true;
+          }
+          else{
+            if (alternate){
+              inBuf="l2_big0";
+              outBuf ="l2_big1";
+              alternate = false;
+            }
+            else{
+              inBuf="l2_big1";
+              outBuf ="l2_big0";
+              alternate = true;
+            }
+          }
+            // First Append network_process.h file with convLayer definition function
+            // There is one new function def per conv Layer as it is going to be inlined
+            append_nphFile(nphFile, nb_depthwise_conv,true);
+            str = str + inBuf + ",L2_W_"+ std::to_string((*it)->layer_number);
+            str=str + ",L2_B_" + std::to_string((*it)->layer_number); // Bias
+            str = str + "," + outBuf + ",";  // out 
+            str = str + std::to_string(QF);  // Norm
+            str=str + ",AllKernels + " + std::to_string(idx) + "); \n"; // kernel
+            
+          function_num += 1;
+          
+
+      }
+      else 
+        cerr << orange << "Warning: Only conv , depthwiseConv and dense layers, eventually fused with Maxpool and Relu are supported by this bridge up to now." << "\n"; 
       idx++;
   }
   Hfile << "#define NB_CONV " << nb_conv << "\n";
   Hfile << "#define NB_DENSE " << nb_dense << "\n";
+  Hfile << "#define NB_DEPTHWISE_CONV " << nb_depthwise_conv << "\n";
   Hfile << tmp_conv << "};\n";
   Hfile << tmp_dense << "};\n";  
+  Hfile << tmp_depthwise_conv << "};\n";
   str = str + "} \n\n";
   Hfile.close();
 }
@@ -1413,11 +1612,14 @@ int main(int argc, char* argv[]) {
     }
     // Prints the graph for debug purposes. Can be commented 
     // if not needed
-    /*ofstream graphDumpFile;
+    clog << "\n";
+    clog << red << "****** Dumping Graph ******" << def << "\n";
+
+    ofstream graphDumpFile;
     graphDumpFile.open("graphDump.txt");
     graphDumpFile << graph.DebugString() << "\n";
     graphDumpFile.close();
-*/
+
     // open GAP8 main code File
     ofstream CFile; // GAP8 network process main file
     ofstream DFile;  //GAP8 defines file

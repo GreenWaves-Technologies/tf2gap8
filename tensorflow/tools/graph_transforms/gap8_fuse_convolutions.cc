@@ -357,6 +357,8 @@ Status FuseConv2DAndAddAndRelu( const GraphDef& input_graph_def,
 
 
 
+
+
 /*Status FuseConv2DAndMaxpool( const GraphDef& input_graph_def,
                                 const TransformFuncContext& context,
                                 GraphDef* output_graph_def) {
@@ -456,6 +458,75 @@ Status FuseConv2DAndAdd( const GraphDef& input_graph_def,
             // Set up the new fused version of the convolution op.
             NodeDef conv_with_relu;
             conv_with_relu.set_op("GAP8_Conv2D");
+            conv_with_relu.set_name(match.node.name());
+            AddNodeInput(conv_node.input(0), &conv_with_relu);
+            AddNodeInput(conv_node.input(1), &conv_with_relu);
+            AddNodeInput(add_node.input(1), &conv_with_relu);
+            CopyNodeAttr(add_node, "T", "T", &conv_with_relu);
+            CopyNodeAttr(conv_node, "padding", "padding", &conv_with_relu);
+            CopyNodeAttr(conv_node, "strides", "strides", &conv_with_relu);
+            AddNodeAttr("maxpool",false,&conv_with_relu);
+            AddNodeAttr("relu",false,&conv_with_relu);
+            AddNodeAttr("pooling_factor",0,&conv_with_relu);
+            CopyNodeAttr(conv_node, "_output_shapes", "_output_shapes", &conv_with_relu);
+            new_nodes->push_back(conv_with_relu);
+            any_nodes_removed=true;
+
+            return Status::OK();
+          },
+          {}, &replaced_graph_def));
+  
+        
+  *output_graph_def = replaced_graph_def;
+  current_graph_def=replaced_graph_def;
+  } while (any_nodes_removed);
+  return Status::OK();
+}
+
+
+Status FuseDepthwiseConv2DAndAdd( const GraphDef& input_graph_def,
+                                  const TransformFuncContext& context,
+                                  GraphDef* output_graph_def) {
+  bool any_nodes_removed;
+  GraphDef current_graph_def;
+  current_graph_def=input_graph_def;
+  do {
+  any_nodes_removed=false;
+  GraphDef replaced_graph_def;
+  TF_RETURN_IF_ERROR(ReplaceMatchingOpTypes(
+      current_graph_def,  // clang-format of
+      {"Add",
+        {
+          {"DepthwiseConv2dNative",
+            {
+              {"*"},
+              {"*"},
+            }
+          },
+          {"*"}
+        }
+      },  // clang-format on
+      [&any_nodes_removed](
+          const NodeMatch& match,
+          const std::set<string>& input_nodes,
+          const std::set<string>& output_nodes,
+          std::vector<NodeDef>* new_nodes) {
+
+            const NodeDef& add_node = match.node;
+            CHECK_EQ("Add", add_node.op());
+            const NodeDef& conv_node = match.inputs[0].node;
+            CHECK_EQ("DepthwiseConv2dNative", conv_node.op());
+            const NodeDef& bias_node = match.inputs[1].node;
+            const NodeDef& input_node = match.inputs[0].inputs[0].node;
+            const NodeDef& weights_node = match.inputs[0].inputs[1].node;
+            cerr << "++++++ FuseDEpthwiseConv2DAndAdd +++++++++" << "\n";
+            // We'll be reusing the old weights and bias.
+            new_nodes->push_back(bias_node);
+            new_nodes->push_back(input_node);
+            new_nodes->push_back(weights_node);
+            // Set up the new fused version of the convolution op.
+            NodeDef conv_with_relu;
+            conv_with_relu.set_op("GAP8_Depthwise_Conv2D");
             conv_with_relu.set_name(match.node.name());
             AddNodeInput(conv_node.input(0), &conv_with_relu);
             AddNodeInput(conv_node.input(1), &conv_with_relu);
@@ -986,6 +1057,8 @@ REGISTER_GRAPH_TRANSFORM("fuse_reshape_matmul_add_relu",FuseReshapeAndMatmulAndA
 REGISTER_GRAPH_TRANSFORM("fuse_matmul_add_relu", FuseMatmulAndAddAndRelu);
 
 REGISTER_GRAPH_TRANSFORM("fuse_matmul_add",FuseMatmulAndAdd);
+
+REGISTER_GRAPH_TRANSFORM("fuse_depthwiseconv2d_add", FuseDepthwiseConv2DAndAdd);
   
 
 } // namespace graph_transforms

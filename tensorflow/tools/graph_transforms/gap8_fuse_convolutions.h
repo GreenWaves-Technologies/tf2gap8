@@ -84,10 +84,16 @@ Status FuseMatmulAndAddAndRelu(
 	const GraphDef& input_graph_def,
 	const TransformFuncContext& context,
         GraphDef* output_graph_def);
+
 Status FuseMatmulAndAdd(
 	const GraphDef& input_graph_def,
 	const TransformFuncContext& context,
         GraphDef* output_graph_def);
+
+Status FuseDepthwiseConv2DAndAdd(
+	const GraphDef& input_graph_def,
+	const TransformFuncContext& context,
+          GraphDef* output_graph_def);	
 
 }
 }

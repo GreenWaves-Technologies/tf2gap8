@@ -38,7 +38,7 @@ operators library. The steps that this script automates are the following ones:
       it for the inference phase on GAP8 processor. The main tasks of this 
       transformation will be to:
         * Trim parts of the graph that are not needed for inference
-        * Turn sub-expressions into single nodesquant
+        * Turn sub-expressions into single nodes
         * Order nodes in processing order for inference
         * Refactor some nodes to fit the GAP8 CNN functions Library
     * Inference code generation from the application graph that has been previously 
@@ -101,11 +101,11 @@ def main(argv):
     inputGraph=''
     inputCheckpoint=''
     inputNode=''
+    outputNode=''
     TFDir="/home/corine_lamagdeleine/tensorflow"
     #Parameters deducted from previous ones
     frozenGraphName=''
     ftp=''
-    freeze=''
    
     # Get options and their value
     print("Starting tf2gap8.py Script\n")
@@ -121,9 +121,8 @@ def main(argv):
         # --output_node_names=softmax_linear/softmax_linear
         # --tf_dir
         # --floating_point
-        # --freeze
 
-        opts, args = getopt.getopt(argv,"h", ["help","input_graph=","input_checkpoint=","input_node=","output_node=", "tf_dir=","floating_point=","freeze="])
+        opts, args = getopt.getopt(argv,"h", ["help","input_graph=","input_checkpoint=","input_node=","output_node=", "tf_dir=","floating_point="])
     except getopt.GetoptError as err:
         print(err)
         usage()
@@ -147,18 +146,8 @@ def main(argv):
             TFDir=arg
         elif opt=="--floating_point":
             ftp=arg
-        elif opt=="--freeze":
-            freeze=arg
         else:
             assert False, "unhandled option"
-
-    if (freeze=='true'):
-        #input graph is not already frozen. It has to be freezed
-        #generate frozen Graph File name
-        frozenGraphName=getFrozenGraphName(inputGraph)
-    else:
-        # input graph is already frozen
-        frozenGraphName=inputGraph
 
     print('Input Graph is: ' + inputGraph +"\n")
     print('Input Checkpoint is: ' + inputCheckpoint +"\n")
@@ -166,37 +155,36 @@ def main(argv):
     print('Output Node is: ' + outputNode+"\n")
     print('Tensorflow Dir is: ' + TFDir +"\n")
     print('floating_point is: ' + ftp + "\n")
-    print("freeze is:" + freeze + "\n")
-    print("frozenGraphName: " + frozenGraphName + "\n")
+    
+    #generate frozen Graph File name
+    frozenGraphName=getFrozenGraphName(inputGraph)
+    print("frozenGraphName: " + frozenGraphName)
 
-
-    if (freeze=='true'):
-        #Run freeze graph command to freeze the TF graph with its correspondig weights and biases
-        #resulting from the training step
-        print('\x1b[6;30;42m' + 'Calling subprocess freeze_graph' + '\x1b[0m')
-        print ("\n")
-        print(inputGraph)
-        print(inputCheckpoint)
-        print(getFrozenGraphName(inputGraph))
-        print(inputNode)
-        print(outputNode)
-        print(TFDir+ '/bazel-bin/tensorflow/python/tools/freeze_graph ' + '--input_graph=' + inputGraph + ' --input_checkpoint=' + inputCheckpoint + ' --output_graph=' + getFrozenGraphName(inputGraph) + ' --output_node_names=' + outputNode)
-        result = subprocess.run([TFDir + '/bazel-bin/tensorflow/python/tools/freeze_graph',
-                                '--input_graph=' + inputGraph,
-                                '--input_checkpoint=' + inputCheckpoint,
-                                '--output_graph=' + getFrozenGraphName(inputGraph),
-                                '--output_node_names=' + outputNode],
-                                stdout=subprocess.PIPE)
-        '''result.stdout.decode('utf-8')
-        print (result)'''
-        returncode=result.returncode
-        if (returncode!=0):
-            print ('\x1b[250;4;4m' + "freeze_graph process didn't complete" + '\x1b[0m')
-            quit()
-        else:
-            print ('\x1b[6;30;42m' + "Subprocess freeze_graph completed successfully" + '\x1b[0m')
-        print ("\n")
-
+    #Run freeze graph command to freeze the TF graph with its correspondig weights and biases
+    #resulting from the training step
+    print('\x1b[6;30;42m' + 'Calling subprocess freeze_graph' + '\x1b[0m')
+    print ("\n")
+    print(inputGraph)
+    print(inputCheckpoint)
+    print(getFrozenGraphName(inputGraph))
+    print(inputNode)
+    print(outputNode)
+    print(TFDir+ '/bazel-bin/tensorflow/python/tools/freeze_graph ' + '--input_graph=' + inputGraph + ' --input_checkpoint=' + inputCheckpoint + ' --output_graph=' + getFrozenGraphName(inputGraph) + ' --output_node_names=' + outputNode)
+    result = subprocess.run([TFDir + '/bazel-bin/tensorflow/python/tools/freeze_graph',
+                            '--input_graph=' + inputGraph,
+                            '--input_checkpoint=' + inputCheckpoint,
+                            '--output_graph=' + getFrozenGraphName(inputGraph),
+                            '--output_node_names=' + outputNode],
+                            stdout=subprocess.PIPE)
+    '''result.stdout.decode('utf-8')
+    print (result)'''
+    returncode=result.returncode
+    if (returncode!=0):
+        print ('\x1b[250;4;4m' + "freeze_graph process didn't complete" + '\x1b[0m')
+        quit()
+    else:
+        print ('\x1b[6;30;42m' + "Subprocess freeze_graph completed successfully" + '\x1b[0m')
+    print ("\n")
     # Now transform the graph obtained. Frozen graph has been stored in the same directory as the original graph.
     ''''result=applyAllTransforms( getFrozenGraphName(inputGraph), 
                         getOptimizedGraphName(inputGraph),
@@ -209,25 +197,13 @@ def main(argv):
     
     print('\x1b[6;30;42m' + 'Calling subprocess transform_graph' + '\x1b[0m')
     print('--transforms=strip_unused_nodes remove_nodes(op=Identity) fuse_conv2d_add_relu_maxpool fuse_conv2d_add_relu fuse_conv2d_add_maxpool fuse_GAP8_conv2d_maxpool fuse_reshape_matmul_add_relu_softmax fuse_reshape_matmul_add_softmax')
-    print(TFDir + '/bazel-bin/tensorflow/tools/graph_transforms/transform_graph' + ' --in_graph='+ frozenGraphName + ' --out_graph=' + getOptimizedGraphName(inputGraph) + ' --inputs=' + inputNode + ' --outputs='+ outputNode + ' --transforms=strip_unused_nodes gap8_transform_tool remove_nodes(op=Identity)')
+    print(TFDir + '/bazel-bin/tensorflow/tools/graph_transforms/transform_graph' + ' --in_graph='+ getFrozenGraphName(inputGraph) + ' --out_graph=' + getOptimizedGraphName(inputGraph) + ' --inputs=' + inputNode + ' --outputs='+ outputNode + ' --transforms=strip_unused_nodes gap8_transform_tool remove_nodes(op=Identity)')
     result=subprocess.run([TFDir +'/bazel-bin/tensorflow/tools/graph_transforms/transform_graph',
-                          '--in_graph='+ frozenGraphName,
+                          '--in_graph='+ getFrozenGraphName(inputGraph),
                           '--out_graph=' + getOptimizedGraphName(inputGraph),
                           '--inputs=' + inputNode,
                           '--outputs=' + outputNode,
-                          '--transforms=strip_unused_nodes remove_nodes(op=Identity) \
-                           fuse_conv2d_add_relu_maxpool \
-                            fuse_conv2d_add_relu \
-                            fuse_conv2d_add_maxpool \
-                            fuse_GAP8_conv2d_maxpool \
-                            fuse_reshape_matmul_add_relu_softmax \
-                            fuse_reshape_matmul_add_softmax \
-                            fuse_reshape_matmul_add_relu \
-                            fuse_reshape_matmul_add \
-                            fuse_matmul_add_relu \
-                            fuse_matmul_add \
-                            '], \
-                            stdout=subprocess.PIPE)
+                          '--transforms=strip_unused_nodes remove_nodes(op=Identity) fuse_conv2d_add_relu_maxpool fuse_conv2d_add_relu fuse_conv2d_add_maxpool fuse_GAP8_conv2d_maxpool fuse_reshape_matmul_add_relu_softmax fuse_reshape_matmul_add_softmax'], stdout=subprocess.PIPE)
     
     #Now generate the GAP8 code from the optimized graph
     #This program now called loader.cc must be called with the file name (without path) and #directory name as parameters of the file

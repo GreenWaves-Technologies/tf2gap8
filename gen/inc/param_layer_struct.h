@@ -40,6 +40,19 @@ struct param_conv_layer {
   char norm_data;
 };
 
+struct param_depthwise_conv_layer {
+  int nb_if;
+  int nb_of;
+  int win;
+  int hin;
+  int kernel_width;
+  int kernel_height;
+  char relu;
+  char max_pool;
+  char pool_size;
+  char norm_data;
+};
+
 struct param_dense_layer {
   int nb_if;
   int nb_of;

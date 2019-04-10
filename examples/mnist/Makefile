@@ -38,12 +38,11 @@ T2G_EXAMPLES_COMMON=../common
 T2G_KERNEL_SRCS = $(wildcard $(T2G_CNNKERNEL_SRC)/*.c)
 
 PULP_APP = mnist
-GEN_SRCS = $(T2G_BUILD_DIR)/CnnKernels.c $(T2G_BUILD_DIR)/CnnKernelsInit.c  $(T2G_CODE_DIR)/weights_bias.c $(T2G_CODE_DIR)/network_process.c  $(T2G_KERNEL_SRCS)
-
+GEN_SRCS = $(T2G_BUILD_DIR)/CnnKernels.c $(T2G_BUILD_DIR)/CnnKernelsInit.c  $(T2G_CODE_DIR)/weights_bias.c $(T2G_CODE_DIR)/network_process.c $(CNN_KERNELS_LIST)
 
 PULP_APP_SRCS = l2_x_mnist.c $(T2G_EXAMPLES_COMMON)/main.c $(GEN_SRCS)
 PULP_CFLAGS  += -O3 -Wno-unused-but-set-variable -Wno-pointer-sign #-DDUMP_LAYER
-PULP_CFLAGS  += -I$(GAP_TF2GAP_PATH)/gen/inc -I$(T2G_STDTYPES) -I$(T2G_CNNSTDMODEL) -I$(T2G_BUILD_DIR) -I$(T2G_CODE_DIR) -I$(T2G_CNNKERNEL_INC) -I$(T2G_GENTILING_INC)
+PULP_CFLAGS  += -I$(T2G_GENTILING_INC) -I$(T2G_GEN_INC_DIR)  -I$(T2G_STDTYPES) -I$(T2G_CNNSTDMODEL) -I$(T2G_BUILD_DIR) -I$(T2G_CODE_DIR) -I${T2G_CNNKERNEL_INC}
 
 $(eval $(call tf2gap8_rules,$(CURDIR)/data,mnist.pbtxt,model.ckpt,x_inter,y_output,$(CURDIR)/$(T2G_BUILD_DIR),mnist, false))
 

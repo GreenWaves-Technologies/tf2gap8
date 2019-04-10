@@ -34,6 +34,12 @@ cc_library(
     deps = [":Layer"],
 )
 
+cc_library(
+    name = "DepthwiseConvLayer",
+    srcs = ["DepthwiseConvLayer.cc"],
+    hdrs = ["DepthwiseConvLayer.h"],
+    deps = [":Layer"],
+)
 
 cc_library(
     name = "PoolLayer",
@@ -66,7 +72,8 @@ tf_cc_binary(
         "//tensorflow/core:tensorflow",
         ":node",
         ":Layer",
-	":ConvLayer",
+	    ":ConvLayer",
+        ":DepthwiseConvLayer",
         ":PoolLayer",
         ":DenseLayer",
         ":GAP8Tensor",

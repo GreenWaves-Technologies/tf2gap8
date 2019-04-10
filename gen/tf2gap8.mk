@@ -78,9 +78,11 @@ T2G_TRANSFORMS=strip_unused_nodes remove_nodes(op=Identity) fuse_conv2d_add_relu
                             fuse_reshape_matmul_add_relu \
                             fuse_reshape_matmul_add \
                             fuse_matmul_add_relu \
-                            fuse_matmul_add 
+                            fuse_matmul_add \
+                            fuse_depthwiseconv2d_add
 
 T2G_GEN_FILES=CnnKernels.c CnnKernels.h CnnKernelsInit.c CnnKernelsInit.h
+CNN_KERNELS_LIST := $(wildcard $(T2G_CNNKERNEL_SRC)/*.c) 
 
 # $1 = Directory with input TensorFlow graph
 # $2 = Input graph filename e.g. mnist.pbtxt
