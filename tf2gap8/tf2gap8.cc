@@ -706,7 +706,7 @@ void createLayersVector(std::vector<Layer*>& layers,
 
   //initialize some parameters. Those numbers have been chosen to work for the 
   // cifar10 and mnist tutorials, but should not necessary work for other applications
-  const int conv_norm_factor=14; // norm Factor to convert integer output to Q16 representation. Input was in Q16
+  const int conv_norm_factor=14; // norm Factor to normalize the integer output to 16 bit representation. 
   const int dense_norm_factor=16; // norm Factor for the Dense Layer output 
   const int dense_norm_bias = 13; // norm factor for the bias output. 
   // output  
